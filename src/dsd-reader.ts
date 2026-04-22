@@ -16,6 +16,7 @@
  */
 import * as readline from 'readline';
 import { config } from './config';
+import { stats } from './stats';
 
 const SRC_PATTERNS = [
   /\bSrc:\s*(\d{4,9})\b/i,
@@ -61,6 +62,7 @@ export function startDsdReader(onEvent: (event: DmrEvent) => void): void {
   }
 
   rl.on('line', (line) => {
+    stats.linesRead++;
     if (config.debug) console.log('[dsd]', line);
 
     // Check for GPS first — may accompany a previously seen DMR-ID

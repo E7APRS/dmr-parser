@@ -15,26 +15,41 @@ import { config } from './config';
 import { startDsdReader, DmrEvent } from './dsd-reader';
 import { lookupDmrId } from './radioid';
 import { postPosition } from './aprs-client';
+import { stats, addRecent } from './stats';
+import { startHealthServer } from './health-server';
 
 // Debounce: track last event time per DMR-ID
 const lastSeen = new Map<number, number>();
 
 async function handleEvent(event: DmrEvent): Promise<void> {
+  stats.dmrEventsTotal++;
+  if (event.lat !== undefined) stats.dmrEventsWithGps++;
+  else stats.dmrEventsNoGps++;
+
   const now = Date.now();
   const last = lastSeen.get(event.dmrId) ?? 0;
 
-  if (now - last < config.debounceSec * 1000) return;
+  if (now - last < config.debounceSec * 1000) {
+    stats.debounced++;
+    return;
+  }
   lastSeen.set(event.dmrId, now);
 
   console.log(`[dmr] Heard DMR-ID: ${event.dmrId}${event.lat !== undefined ? ` @ ${event.lat.toFixed(5)}, ${event.lon!.toFixed(5)}` : ' (no GPS)'}`);
 
   // 1. Resolve callsign
   const radio = await lookupDmrId(event.dmrId);
-  if (!radio) return;
+  if (!radio) {
+    stats.lookupFail++;
+    addRecent({ dmrId: event.dmrId, callsign: null, lat: event.lat, lon: event.lon, posted: false, reason: 'lookup failed', at: new Date().toISOString() });
+    return;
+  }
+  stats.lookupSuccess++;
 
   // 2. Require GPS transmitted with the call — skip if missing
   if (event.lat === undefined || event.lon === undefined) {
     console.log(`[dmr] ${radio.callsign} (${event.dmrId}) — no GPS, skipping`);
+    addRecent({ dmrId: event.dmrId, callsign: radio.callsign, posted: false, reason: 'no GPS', at: new Date().toISOString() });
     return;
   }
 
@@ -45,7 +60,8 @@ async function handleEvent(event: DmrEvent): Promise<void> {
   console.log(`[dmr] Position: ${posSource} (${lat.toFixed(5)}, ${lon.toFixed(5)})`);
 
   // 3. Post to APRS backend
-  await postPosition({
+  stats.postsAttempted++;
+  const ok = await postPosition({
     radioId:   radio.callsign,
     callsign:  radio.callsign,
     lat,
@@ -54,13 +70,19 @@ async function handleEvent(event: DmrEvent): Promise<void> {
     comment:   `DMR-ID: ${event.dmrId} | ${radio.name} | via DMR`,
     timestamp: new Date().toISOString(),
   });
+
+  if (ok) stats.postsSuccess++;
+  else stats.postsFailed++;
+
+  addRecent({ dmrId: event.dmrId, callsign: radio.callsign, lat, lon, posted: ok, reason: ok ? undefined : 'POST failed', at: new Date().toISOString() });
 }
 
 console.log('[dmr-parser] Started — waiting for DSD+ input on stdin');
 console.log(`[dmr-parser] Backend: ${config.backendUrl}`);
-console.log(`[dmr-parser] Default position: ${config.defaultLat}, ${config.defaultLon}`);
 console.log(`[dmr-parser] Debounce: ${config.debounceSec}s`);
 console.log('');
+
+startHealthServer();
 
 startDsdReader((event) => {
   handleEvent(event).catch(err => console.error('[dmr] Error:', err));

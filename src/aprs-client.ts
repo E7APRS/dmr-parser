@@ -14,7 +14,7 @@ export interface GpsPayload {
   timestamp: string;
 }
 
-export async function postPosition(payload: GpsPayload): Promise<void> {
+export async function postPosition(payload: GpsPayload): Promise<boolean> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (config.gpsApiKey) headers['X-Api-Key'] = config.gpsApiKey;
@@ -29,11 +29,13 @@ export async function postPosition(payload: GpsPayload): Promise<void> {
     if (!res.ok) {
       const text = await res.text();
       console.error(`[aprs] POST failed (${res.status}): ${text}`);
-      return;
+      return false;
     }
 
     console.log(`[aprs] Posted: ${payload.callsign} @ ${payload.lat.toFixed(5)}, ${payload.lon.toFixed(5)}`);
+    return true;
   } catch (err) {
     console.error('[aprs] POST error:', (err as Error).message);
+    return false;
   }
 }
