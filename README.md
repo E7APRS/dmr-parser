@@ -53,11 +53,11 @@ dsdplus.exe -l
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `APRS_BACKEND_URL` | `http://localhost:3001` | APRS backend base URL |
-| `DEBOUNCE_SEC` | `60` | Seconds to suppress duplicate events for the same DMR-ID |
-| `DEBUG` | `0` | Set to `1` to log every raw DSD+ line |
+| Variable           | Default                 | Description                                              |
+|--------------------|-------------------------|----------------------------------------------------------|
+| `APRS_BACKEND_URL` | `http://localhost:3001` | APRS backend base URL                                    |
+| `DEBOUNCE_SEC`     | `60`                    | Seconds to suppress duplicate events for the same DMR-ID |
+| `DEBUG`            | `0`                     | Set to `1` to log every raw DSD+ line                    |
 
 ## DSD+ Output Parsing
 
