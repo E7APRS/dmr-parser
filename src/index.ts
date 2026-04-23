@@ -77,8 +77,9 @@ async function handleEvent(event: DmrEvent): Promise<void> {
   addRecent({ dmrId: event.dmrId, callsign: radio.callsign, lat, lon, posted: ok, reason: ok ? undefined : 'POST failed', at: new Date().toISOString() });
 }
 
-console.log('[dmr-parser] Started — waiting for DSD+ input on stdin');
+console.log('[dmr-parser] Started');
 console.log(`[dmr-parser] Backend: ${config.backendUrl}`);
+console.log(`[dmr-parser] Input: ${config.watchFile || 'stdin'}`);
 console.log(`[dmr-parser] Debounce: ${config.debounceSec}s`);
 console.log('');
 

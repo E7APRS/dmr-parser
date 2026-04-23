@@ -6,4 +6,5 @@ export const config = {
   debounceSec: parseInt(process.env.DEBOUNCE_SEC ?? '60', 10),
   debug:       process.env.DEBUG === '1',
   healthPort:  parseInt(process.env.DMR_HEALTH_PORT ?? '3003', 10),
+  watchFile:   process.env.DSD_LOG_FILE ?? '',
 };
